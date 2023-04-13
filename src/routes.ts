@@ -1,9 +1,14 @@
-import homeController from './controller/home-controller';
+import pockerController from "./controller/pocker-controller";
 
 export default [
   {
-    path: '/',
+    path: '/register',
+    method: 'post',
+    action: pockerController.register
+  },
+  {
+    path: '/getTableList',
     method: 'get',
-    action: homeController.hello
+    action: pockerController.getTableList
   }
 ];

@@ -1,0 +1,141 @@
+<html>
+  <head>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+      }
+      .container {
+        display: flex;
+        flex-wrap: wrap;
+      }
+      .table-item {
+        margin: 30px;
+        position: relative;
+        width: 500px;
+        height: 500px;
+      }
+      .table {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: grey;
+      }
+      .table.operation {
+        cursor: pointer;
+        text-align: center;
+        line-height: 200px;
+        font-size: 40px;
+        font-weight: bold;
+      }
+      .seat {
+        position: absolute;
+        width: 80px;
+        height: 40px;
+        border: solid 1px black;
+        top: 50%;
+        left: 50%;
+        cursor: pointer;
+        text-align: center;
+        line-height: 40px;
+        font-size: 20px;
+      }
+      .seat.seat-1 {
+        transform: translateY(-50%) translateX(-200px);
+      }
+      .seat.seat-2 {
+        transform: translateY(-50%) translateX(120px);
+      }
+      .seat.seat-3 {
+        transform: translateX(-50%) translateY(120px);
+      }
+      .seat.settle {
+
+      }
+      .seat.ready {
+        background: green;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container" id='container'>
+
+    </div>
+  </body>
+  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js" integrity="sha384-fKnu0iswBIqkjxrhQCTZ7qlLHOFEgNkRmK2vaO/LbTZSXdJfAu6ewRBdwHPhBo/H" crossorigin="anonymous"></script>
+  <script>
+    const socket = io('/hall');
+    let userId = localStorage.getItem('userId')
+    socket.on('update', (param) => {
+      console.log('update>>>>>',param)
+    })
+    async function request(url, param, method="POST") {
+      url = `http://43.134.232.18:3000${url}`;
+      let response = {};
+      if(method === 'POST') {
+        response = await fetch(url, {
+          method, // *GET, POST, PUT, DELETE, etc.
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(param),
+        });
+      } else {
+        response = await fetch(url);
+      }
+      return response.json(); 
+    }
+    async function getTableList() {
+      const tableList = await request('/getTableList', {}, 'GET')
+      return tableList;
+    }
+    function updateView(tableList) {
+      const container = document.getElementById('container');
+      const fragment = document.createDocumentFragment();
+      tableList.forEach(table => {
+        const {id, status, players} = table;
+        const tableItem = document.createElement('div');
+        tableItem.className = 'table-item';
+        const tableDom = document.createElement('div');
+        tableDom.className = 'table';
+        const seats = new Array(3).fill(0).map((item, index) => ({
+          id: index + 1,
+          status: 1,
+        }));
+        seats.forEach(seat => {
+          const {id} = seat;
+          const player = players.find(player => player.seatId === id)
+          seat.player = player;
+        })
+        const seatDoms = seats.map((seat, index) => {
+          const {player} = seat;
+          const seatDom = document.createElement('div');
+          seatDom.className = 'seat';
+          seatDom.classList.add(`seat-${seat.id}`);
+          seatDom.textContent = player ? player.name : '';
+          seatDom.dataset.seat = seat;
+          seatDom.addEventListener('click', handleClick)
+          return seatDom;
+        })
+        tableDom.append(...seatDoms)
+        tableItem.appendChild(tableDom);
+        fragment.appendChild(tableItem)
+      })
+      container.innerHTML = '';
+      container.appendChild(fragment)
+    }
+    function handleClick(e) {
+      console.log('click>>>>>', e.target.dataset);
+    }
+    async function initData() {
+      const resp = await getTableList();
+      updateView(resp.data)
+    }
+    initData();
+  </script>
+</html>
